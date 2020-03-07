@@ -1,10 +1,12 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -14,12 +16,11 @@ import (
 )
 
 func main() {
-	defer log.Println("Bye")
-
 	runCmd := &cobra.Command{
 		Use: "run [command]",
 		Run: run,
 	}
+	runCmd.Flags().String("pid-file", "/tmp/volleyd.pid", "File to write the volleyd pid while running")
 	rootCmd := &cobra.Command{
 		Use: "volleyd",
 	}
@@ -42,6 +43,13 @@ func run(cmd *cobra.Command, args []string) {
 		binArgs = args[1:]
 	}
 
+	pidFile, _ := cmd.Flags().GetString("pid-file")
+	if pidFileExists(pidFile) {
+		log.Fatalf("A pid file named %s already exists. Is another volleyd process running?", pidFile)
+	}
+	createPidFile(pidFile)
+	defer deletePidFile(pidFile)
+
 	mgr := &Manager{
 		mutex:   sync.Mutex{},
 		bin:     bin,
@@ -54,6 +62,25 @@ func run(cmd *cobra.Command, args []string) {
 	err = mgr.WaitForUnknownStop()
 	if err != nil {
 		log.Fatalln("Error from process:", err)
+	}
+}
+
+func pidFileExists(pidFile string) bool {
+	info, err := os.Stat(pidFile)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+func createPidFile(pidFile string) error {
+	return ioutil.WriteFile("/tmp/volleyd.pid", []byte(strconv.Itoa(os.Getpid())), 0644)
+}
+
+func deletePidFile(pidFile string) {
+	err := os.Remove(pidFile)
+	if err != nil {
+		log.Println("Unable to remove pid file:", err)
 	}
 }
 
