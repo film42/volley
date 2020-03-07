@@ -6,7 +6,8 @@ Volley is a docker entrypoint process manager that allows stopping and starting 
 ### Building
 
 ```
-$ go build ./...
+$ go build ./cmd/volleyd
+$ go build ./cmd/volleyctl
 ```
 
 ### Volleyd
