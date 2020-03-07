@@ -3,6 +3,12 @@ Volley
 
 Volley is a docker entrypoint process manager that allows stopping and starting of the managed process without restarting the container. It's a prototype to help test the idea "is there a simple way to hot-patch my apps via a docker container (under kubernetes)?"
 
+### Building
+
+```
+$ go build ./...
+```
+
 ### Volleyd
 
 Volleyd is the supervisor that starts and stops your process.
