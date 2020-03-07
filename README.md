@@ -28,7 +28,7 @@ Flags:
 #### Example
 
 ```
-$ ./cmd/volleyd/volleyd run
+$ ./cmd/volleyd/volleyd run bundle exec rails server
 ```
 
 ### Volleyctl
