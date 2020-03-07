@@ -21,15 +21,25 @@ Usage:
   volleyd run [command] [flags]
 
 Flags:
-  -h, --help              help for run
-      --pid-file string   File to write the volleyd pid while running (default "/tmp/volleyd.pid")
+  -h, --help                  help for run
+      --pid-file string       File to write the volleyd pid while running (default "/tmp/volleyd.pid")
+      --use-bash-entrypoint   Specify if volleyd should use a '/bin/bash -c' entrypoint
 ```
 
 #### Example
 
+Run a process that doesn't need a bash entrypoint
+
 ```
-$ ./cmd/volleyd/volleyd run bundle exec rails server
+$ ./cmd/volleyd/volleyd run my_binary_process
 ```
+
+Run a process that needs a bash entrypoint:
+
+```
+$ ./cmd/volleyd/volleyd run --use-bash-entrypoint "while true; do echo 'hello world'; sleep 1; done"
+```
+
 
 ### Volleyctl
 
