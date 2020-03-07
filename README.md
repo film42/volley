@@ -17,7 +17,7 @@ Volleyd is the supervisor that starts and stops your process.
 #### Usage
 
 ```
-$ ./cmd/volleyd/volleyd run --help
+$ ./volleyd run --help
 Usage:
   volleyd run [command] [flags]
 
@@ -32,13 +32,13 @@ Flags:
 Run a process that doesn't need a bash entrypoint
 
 ```
-$ ./cmd/volleyd/volleyd run my_binary_process
+$ ./volleyd run my_binary_process
 ```
 
 Run a process that needs a bash entrypoint:
 
 ```
-$ ./cmd/volleyd/volleyd run --use-bash-entrypoint "while true; do echo 'hello world'; sleep 1; done"
+$ ./volleyd run --use-bash-entrypoint "while true; do echo 'hello world'; sleep 1; done"
 ```
 
 
@@ -49,7 +49,7 @@ Volleyctl is a helper utility that can send start, stop, and shutdown commands t
 #### Usage
 
 ```
-$ ./cmd/volleyctl/volleyctl start|stop|shutdown
+$ ./volleyctl start|stop|shutdown
 ```
 
 #### Example
