@@ -21,7 +21,7 @@ func main() {
 		Run: run,
 	}
 	runCmd.Flags().String("pid-file", "/tmp/volleyd.pid", "File to write the volleyd pid while running")
-	runCmd.Flags().Bool("use-bash-entrypoint", false, "Specify if volleyd should use a '/bin/bash -c' entrypoint")
+	runCmd.Flags().String("entrypoint", "", "Optionally supply entrypoint (ex: '/bin/sh -c')")
 	rootCmd := &cobra.Command{
 		Use: "volleyd",
 	}
@@ -49,22 +49,25 @@ func run(cmd *cobra.Command, args []string) {
 		log.Fatalf("A pid file named %s already exists. Is another volleyd process running?", pidFile)
 	}
 	createPidFile(pidFile)
+	defer deletePidFile(pidFile)
 
-	useBashEntrypoint, _ := cmd.Flags().GetBool("use-bash-entrypoint")
+	entrypoint, _ := cmd.Flags().GetString("entrypoint")
 
 	mgr := &Manager{
-		mutex:   sync.Mutex{},
-		bin:     bin,
-		binArgs: binArgs,
-		useBashEntrypoint: useBashEntrypoint,
+		mutex:      sync.Mutex{},
+		bin:        bin,
+		binArgs:    binArgs,
+		entrypoint: entrypoint,
 	}
 	err := mgr.Start()
 	if err != nil {
+		// Required because Fatalln exits before defer fires.
 		deletePidFile(pidFile)
 		log.Fatalln("Error starting the process:", err)
 	}
 	err = mgr.WaitForUnknownStop()
 	if err != nil {
+		// Required because Fatalln exits before defer fires.
 		deletePidFile(pidFile)
 		log.Fatalln("Error from process:", err)
 	}
@@ -95,7 +98,7 @@ type Manager struct {
 	binArgs           []string
 	process           *exec.Cmd
 	processExitedChan chan error
-	useBashEntrypoint bool
+	entrypoint        string
 }
 
 func (m *Manager) Start() error {
@@ -122,8 +125,11 @@ func (m *Manager) WaitForUnknownStop() error {
 				err = m.tryStop()
 				shouldShutdown = true
 			default:
-				// proxy to the process if it's there.
-				err = m.trySignalProcess(sig)
+				// Proxy to the process if it's there.
+				// If we get a signal and the process is stopped, we will
+				// get a shouldShutdown == true and will shutdown because
+				// we're being asked to stop.
+				err, shouldShutdown = m.trySignalProcess(sig)
 			}
 		case exitErr := <-m.processExitedChan:
 			err = exitErr
@@ -135,6 +141,7 @@ func (m *Manager) WaitForUnknownStop() error {
 		}
 
 		if shouldShutdown {
+			log.Println("Shutting down...")
 			break
 		}
 	}
@@ -152,13 +159,13 @@ func (m *Manager) listenForSignals() <-chan os.Signal {
 	return sigChan
 }
 
-func (m *Manager) trySignalProcess(sig os.Signal) error {
+func (m *Manager) trySignalProcess(sig os.Signal) (error, bool) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if m.process == nil {
-		return nil
+		return nil, true
 	}
-	return m.process.Process.Signal(sig)
+	return m.process.Process.Signal(sig), false
 }
 
 func (m *Manager) tryStart() error {
@@ -168,16 +175,22 @@ func (m *Manager) tryStart() error {
 		return nil
 	}
 
-	log.Println("Starting process:", m.bin, strings.Join(m.binArgs, " "))
-
-	if m.useBashEntrypoint {
-		args := []string{"-c", m.bin}
-		args = append(args, m.binArgs...)
-		m.process = exec.Command("/bin/bash", args...)
-	} else {
-		m.process = exec.Command(m.bin, m.binArgs...)
+	bin := m.bin
+	args := m.binArgs
+	if len(m.entrypoint) > 0 {
+		// Example "/bin/sh -c" -> []string{"/bin/sh", "-c"}.
+		entryArgs := strings.Split(m.entrypoint, " ")
+		// Add the target bin and args.
+		entryArgs = append(entryArgs, m.bin)
+		entryArgs = append(entryArgs, m.binArgs...)
+		// Override with entrypoint + bin + binArgs
+		bin = entryArgs[0]
+		args = entryArgs[1:]
 	}
 
+	log.Println("Starting process:", bin, strings.Join(args, " "))
+
+	m.process = exec.Command(bin, args...)
 	m.process.Stderr = os.Stderr
 	m.process.Stdout = os.Stdout
 
