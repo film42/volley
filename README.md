@@ -22,9 +22,8 @@ Usage:
   volleyd run [command] [flags]
 
 Flags:
-  -h, --help                  help for run
-      --pid-file string       File to write the volleyd pid while running (default "/tmp/volleyd.pid")
-      --use-bash-entrypoint   Specify if volleyd should use a '/bin/bash -c' entrypoint
+  -h, --help                help for run
+      --pid-file string     File to write the volleyd pid while running (default "/tmp/volleyd.pid")
 ```
 
 #### Example
@@ -38,7 +37,7 @@ $ ./volleyd run my_binary_process
 Run a process that needs a bash entrypoint:
 
 ```
-$ ./volleyd run --use-bash-entrypoint "while true; do echo 'hello world'; sleep 1; done"
+$ ./volleyd run -- /bin/sh -c "while true; do echo 'hello world'; sleep 1; done"
 ```
 
 

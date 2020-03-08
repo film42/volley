@@ -21,7 +21,6 @@ func main() {
 		Run: run,
 	}
 	runCmd.Flags().String("pid-file", "/tmp/volleyd.pid", "File to write the volleyd pid while running")
-	runCmd.Flags().String("entrypoint", "", "Optionally supply entrypoint (ex: '/bin/sh -c')")
 	rootCmd := &cobra.Command{
 		Use: "volleyd",
 	}
@@ -51,13 +50,10 @@ func run(cmd *cobra.Command, args []string) {
 	createPidFile(pidFile)
 	defer deletePidFile(pidFile)
 
-	entrypoint, _ := cmd.Flags().GetString("entrypoint")
-
 	mgr := &Manager{
-		mutex:      sync.Mutex{},
-		bin:        bin,
-		binArgs:    binArgs,
-		entrypoint: entrypoint,
+		mutex:   sync.Mutex{},
+		bin:     bin,
+		binArgs: binArgs,
 	}
 	err := mgr.Start()
 	if err != nil {
@@ -98,7 +94,6 @@ type Manager struct {
 	binArgs           []string
 	process           *exec.Cmd
 	processExitedChan chan error
-	entrypoint        string
 }
 
 func (m *Manager) Start() error {
@@ -175,22 +170,9 @@ func (m *Manager) tryStart() error {
 		return nil
 	}
 
-	bin := m.bin
-	args := m.binArgs
-	if len(m.entrypoint) > 0 {
-		// Example "/bin/sh -c" -> []string{"/bin/sh", "-c"}.
-		entryArgs := strings.Split(m.entrypoint, " ")
-		// Add the target bin and args.
-		entryArgs = append(entryArgs, m.bin)
-		entryArgs = append(entryArgs, m.binArgs...)
-		// Override with entrypoint + bin + binArgs
-		bin = entryArgs[0]
-		args = entryArgs[1:]
-	}
+	log.Println("Starting process:", m.bin, strings.Join(m.binArgs, " "))
 
-	log.Println("Starting process:", bin, strings.Join(args, " "))
-
-	m.process = exec.Command(bin, args...)
+	m.process = exec.Command(m.bin, m.binArgs...)
 	m.process.Stderr = os.Stderr
 	m.process.Stdout = os.Stdout
 
