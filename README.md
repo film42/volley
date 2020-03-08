@@ -28,6 +28,8 @@ Flags:
 
 #### Example
 
+Check the [examples](examples/) directory of this repo for help getting started.
+
 Run a process that doesn't need a bash entrypoint
 
 ```
@@ -39,7 +41,6 @@ Run a process that needs a bash entrypoint:
 ```
 $ ./volleyd run -- /bin/sh -c "while true; do echo 'hello world'; sleep 1; done"
 ```
-
 
 ### Volleyctl
 
