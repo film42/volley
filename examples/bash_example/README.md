@@ -1,5 +1,5 @@
-Hello World Example
-===================
+Bash Example
+============
 
 #### Build:
 
